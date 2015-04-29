@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <string>
 #include <stdexcept>
+#include <platform/Log.h>
 
 #include <hiredis/hiredis.h>
 
@@ -57,9 +58,21 @@ int main( int argc, char* argv[] )
 
 
 
+	std::cout << "Using OpenZWave Version: " << OpenZWave::Manager::getVersionAsString().c_str() << std::endl;
+	
+	OpenZWave::Options::Create("./config/", "", "");
+	OpenZWave::Options::Get()->AddOptionInt( "SaveLogLevel", LogLevel_Detail );
+	OpenZWave::Options::Get()->AddOptionInt( "QueueLogLevel", LogLevel_Debug );
+	OpenZWave::Options::Get()->AddOptionInt( "DumpTrigger", LogLevel_Error );
+	OpenZWave::Options::Get()->AddOptionInt( "PollInterval", 500 );
+	OpenZWave::Options::Get()->AddOptionBool( "IntervalBetweenPolls", true );
+	OpenZWave::Options::Get()->AddOptionBool("ValidateValueChanges", true);
+	OpenZWave::Options::Get()->Lock();
 
 	OpenZWave::Manager::Create();
 	OpenZWave::Manager::Get()->AddWatcher( OnNotification, NULL);
+	
+
 
 
 
