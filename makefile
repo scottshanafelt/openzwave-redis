@@ -1,22 +1,17 @@
-CC=gcc
-CXX=g++
-RM=rm -f
-CPPFLAGS=-g $(shell root-config --cflags)
-LDFLAGS=-g $(shell root-config --ldflags)
-LDLIBS=$(shell root-config --libs)
+CXX		= g++
+INCLUDES        = -I /usr/local/include -I /usr/local/include/openzwave/
+CXXFLAGS        = -g -Wall ${INCLUDES}
+OBJS            = main.o
+PROG            = test
+LIBS            = -L /usr/local/lib -l pthread -l hiredis -l openzwave
 
-SRCS=openzwave-redis.cpp
-OBJS=$(subst .cpp,.o,$(SRCS))
+all:		$(PROG)
 
-all: openzwave-redis
+run:
+	./$(PROG)
 
-openzwave-redis: $(OBJS)
-	$(CXX) $(LDFLAGS) -o openzwave-redis $(OBJS) $(LDLIBS)
-
-openzwave-redis.o: openzwave-redis.cpp openzwave-redis.hpp
+${PROG}:	$(OBJS)
+	$(CXX) $(INCLUDES) -o $(PROG) $(OBJS) $(LIBS)
 
 clean:
-	$(RM) $(OBJS)
-
-dist-clean: clean
-	$(RM) openzwave-redis
+	rm -fr *.o $(PROG)
