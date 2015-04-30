@@ -23,5 +23,3 @@ component_redis.o: $(SRCROOT)component_redis.cpp
 
 clean:
 	rm -fr *.o $(PROG) $(SRCROOT)*.o $(BLDROOT)*.o
-
-//OUT_OBJS=$(addprefix $(OUT_DIR)/,$(OBJS))
