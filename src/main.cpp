@@ -311,4 +311,3 @@ int main( int argc, char* argv[] )
 	pthread_mutex_destroy( &g_criticalSection );
 	exit(0);
 }
-
