@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Options>
-  <Option name="logging" value="true" />
+  <Option name="logging" value="false" />
   <Option name="PollInterval" value=500 />
   <Option name="IntervalBetweenPolls" value="true" />
   <Option name="ValidateValueChanges" value="true" />

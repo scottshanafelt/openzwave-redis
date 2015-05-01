@@ -64,7 +64,7 @@ void OnNotification (OpenZWave::Notification const* _notification, void* _contex
 {
 	pthread_mutex_lock( &g_criticalSection );
 
-	std::cout << "OnNotification Running: " << _notification->GetType() << std::endl;
+	//std::cout << "OnNotification Running: " << _notification->GetType() << std::endl;
 	switch( _notification->GetType() )
 	{
 		case Notification::Type_ValueAdded:
@@ -233,10 +233,8 @@ Component_OZW::Component_OZW()
 	OpenZWave::Manager::Get()->AddDriver(port);
 	
 	pthread_cond_wait(&initCond, &initMutex);
-
 	if (!g_initFailed)
 	{
-
 		// The section below demonstrates setting up polling for a variable.  In this simple
 		// example, it has been hardwired to poll COMMAND_CLASS_BASIC on the each node that 
 		// supports this setting.
@@ -253,9 +251,10 @@ Component_OZW::Component_OZW()
 				ValueID v = *it2;
 				if( v.GetCommandClassId() == 0x20 )
 				{
-//					Manager::Get()->EnablePoll( v, 2 );		// enables polling with "intensity" of 2, though this is irrelevant with only one value polled
+					std::cout << "enabling polling on " << std::endl;
+					OpenZWave::Manager::Get()->EnablePoll( v, 2 );		// enables polling with "intensity" of 2, though this is irrelevant with only one value polled
 					break;
-				}
+				} //else { std::cout << "did enable polling on command class id: " << v.GetCommandClassId() << std::endl; }
 			}
 		}
 		pthread_mutex_unlock( &g_criticalSection );
@@ -277,9 +276,7 @@ Component_OZW::Component_OZW()
 		// 	pthread_mutex_unlock( &g_criticalSection );
 		// 	sleep(1);
 		// }
-
-
-	}
+	} else { std::cout << "OZW: Init Failed!" << std::endl; }
 
 
 }
