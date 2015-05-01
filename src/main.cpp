@@ -1,8 +1,12 @@
-#include <component_redis.h>
-#include <component_ozw.h>
+#include "component_redis.h"
+#include "component_ozw.h"
+
+
+
+
 
 int main( int argc, char* argv[] )
 {
-
-	initialize();
+	Component_Redis redis;
+	Component_OZW ozw;
 }

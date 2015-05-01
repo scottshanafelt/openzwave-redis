@@ -1,3 +1,5 @@
+#include "component_ozw.h"
+
 #include <unistd.h>
 #include <iostream>
 #include <stdlib.h>
@@ -206,92 +208,96 @@ void OnNotification (OpenZWave::Notification const* _notification, void* _contex
 	pthread_mutex_unlock( &g_criticalSection );
 }
 
-class component_ozw
+Component_OZW::Component_OZW()
 {
-	public:
-	component_ozw()
-	{
-		pthread_mutexattr_t mutexattr;
+	pthread_mutexattr_t mutexattr;
 
-		pthread_mutexattr_init ( &mutexattr );
-		pthread_mutexattr_settype( &mutexattr, PTHREAD_MUTEX_RECURSIVE );
-		pthread_mutex_init( &g_criticalSection, &mutexattr );
-		pthread_mutexattr_destroy( &mutexattr );
+	pthread_mutexattr_init ( &mutexattr );
+	pthread_mutexattr_settype( &mutexattr, PTHREAD_MUTEX_RECURSIVE );
+	pthread_mutex_init( &g_criticalSection, &mutexattr );
+	pthread_mutexattr_destroy( &mutexattr );
 
-		pthread_mutex_lock( &initMutex );
+	pthread_mutex_lock( &initMutex );
 
-		std::cout << "Using OpenZWave Version: " << OpenZWave::Manager::getVersionAsString().c_str() << std::endl;
+	std::cout << "Using OpenZWave Version: " << OpenZWave::Manager::getVersionAsString().c_str() << std::endl;
+
+	OpenZWave::Options::Create("","./local/","");
+	OpenZWave::Options::Get()->Lock();
+
+	OpenZWave::Manager::Create();
 	
-		OpenZWave::Options::Create("","./local/","");
-		OpenZWave::Options::Get()->Lock();
+	OpenZWave::Manager::Get()->AddWatcher(OnNotification, NULL);
+	
+	string port = "/dev/ttyUSB0";
+	OpenZWave::Manager::Get()->AddDriver(port);
+	
+	pthread_cond_wait(&initCond, &initMutex);
 
-		OpenZWave::Manager::Create();
-		
-		OpenZWave::Manager::Get()->AddWatcher(OnNotification, NULL);
-		
-		string port = "/dev/ttyUSB0";
-		OpenZWave::Manager::Get()->AddDriver(port);
-		
-		pthread_cond_wait(&initCond, &initMutex);
+	if (!g_initFailed)
+	{
 
-		if (!g_initFailed)
+		// The section below demonstrates setting up polling for a variable.  In this simple
+		// example, it has been hardwired to poll COMMAND_CLASS_BASIC on the each node that 
+		// supports this setting.
+		pthread_mutex_lock( &g_criticalSection );
+		for( list<NodeInfo*>::iterator it = g_nodes.begin(); it != g_nodes.end(); ++it )
 		{
+			NodeInfo* nodeInfo = *it;
 
-			// The section below demonstrates setting up polling for a variable.  In this simple
-			// example, it has been hardwired to poll COMMAND_CLASS_BASIC on the each node that 
-			// supports this setting.
-			pthread_mutex_lock( &g_criticalSection );
-			for( list<NodeInfo*>::iterator it = g_nodes.begin(); it != g_nodes.end(); ++it )
+			// skip the controller (most likely node 1)
+			if( nodeInfo->m_nodeId == 1) continue;
+
+			for( list<ValueID>::iterator it2 = nodeInfo->m_values.begin(); it2 != nodeInfo->m_values.end(); ++it2 )
 			{
-				NodeInfo* nodeInfo = *it;
-
-				// skip the controller (most likely node 1)
-				if( nodeInfo->m_nodeId == 1) continue;
-
-				for( list<ValueID>::iterator it2 = nodeInfo->m_values.begin(); it2 != nodeInfo->m_values.end(); ++it2 )
+				ValueID v = *it2;
+				if( v.GetCommandClassId() == 0x20 )
 				{
-					ValueID v = *it2;
-					if( v.GetCommandClassId() == 0x20 )
-					{
-	//					Manager::Get()->EnablePoll( v, 2 );		// enables polling with "intensity" of 2, though this is irrelevant with only one value polled
-						break;
-					}
+//					Manager::Get()->EnablePoll( v, 2 );		// enables polling with "intensity" of 2, though this is irrelevant with only one value polled
+					break;
 				}
 			}
-			pthread_mutex_unlock( &g_criticalSection );
-
-			// If we want to access our NodeInfo list, that has been built from all the
-			// notification callbacks we received from the library, we have to do so
-			// from inside a Critical Section.  This is because the callbacks occur on other 
-			// threads, and we cannot risk the list being changed while we are using it.  
-			// We must hold the critical section for as short a time as possible, to avoid
-			// stalling the OpenZWave drivers.
-			// At this point, the program just waits for 3 minutes (to demonstrate polling),
-			// then exits
-			for( int i = 0; i < 60*3; i++ )
-			{
-				pthread_mutex_lock( &g_criticalSection );
-				// but NodeInfo list and similar data should be inside critical section
-				std::cout << i << "s,";
-				pthread_mutex_unlock( &g_criticalSection );
-				sleep(1);
-			}
-
-			OpenZWave::Driver::DriverData data;
-			OpenZWave::Manager::Get()->GetDriverStatistics( g_homeId, &data );
-			printf("SOF: %d ACK Waiting: %d Read Aborts: %d Bad Checksums: %d\n", data.m_SOFCnt, data.m_ACKWaiting, data.m_readAborts, data.m_badChecksum);
-			printf("Reads: %d Writes: %d CAN: %d NAK: %d ACK: %d Out of Frame: %d\n", data.m_readCnt, data.m_writeCnt, data.m_CANCnt, data.m_NAKCnt, data.m_ACKCnt, data.m_OOFCnt);
-			printf("Dropped: %d Retries: %d\n", data.m_dropped, data.m_retries);
 		}
+		pthread_mutex_unlock( &g_criticalSection );
 
-		//Clean up OpenZWave
-		OpenZWave::Manager::Get()->RemoveDriver(port);
-		OpenZWave::Manager::Get()->RemoveWatcher(OnNotification, NULL);
-		OpenZWave::Manager::Destroy();
-		OpenZWave::Options::Destroy();
+		// If we want to access our NodeInfo list, that has been built from all the
+		// notification callbacks we received from the library, we have to do so
+		// from inside a Critical Section.  This is because the callbacks occur on other 
+		// threads, and we cannot risk the list being changed while we are using it.  
+		// We must hold the critical section for as short a time as possible, to avoid
+		// stalling the OpenZWave drivers.
+		// At this point, the program just waits for 3 minutes (to demonstrate polling),
+		// then exits
+		
+		// for( int i = 0; i < 60*1; i++ )
+		// {
+		// 	pthread_mutex_lock( &g_criticalSection );
+		// 	// but NodeInfo list and similar data should be inside critical section
+		// 	std::cout << i << "s,";
+		// 	pthread_mutex_unlock( &g_criticalSection );
+		// 	sleep(1);
+		// }
 
 
-		pthread_mutex_destroy( &g_criticalSection );
-		exit(0);
 	}
-};
+
+
+}
+Component_OZW::Destroy()
+{
+	OpenZWave::Driver::DriverData data;
+	OpenZWave::Manager::Get()->GetDriverStatistics( g_homeId, &data );
+	printf("SOF: %d ACK Waiting: %d Read Aborts: %d Bad Checksums: %d\n", data.m_SOFCnt, data.m_ACKWaiting, data.m_readAborts, data.m_badChecksum);
+	printf("Reads: %d Writes: %d CAN: %d NAK: %d ACK: %d Out of Frame: %d\n", data.m_readCnt, data.m_writeCnt, data.m_CANCnt, data.m_NAKCnt, data.m_ACKCnt, data.m_OOFCnt);
+	printf("Dropped: %d Retries: %d\n", data.m_dropped, data.m_retries);
+
+	//Clean up OpenZWave
+	OpenZWave::Manager::Get()->RemoveDriver(port);
+	OpenZWave::Manager::Get()->RemoveWatcher(OnNotification, NULL);
+	OpenZWave::Manager::Destroy();
+	OpenZWave::Options::Destroy();
+
+
+	pthread_mutex_destroy( &g_criticalSection );
+	exit(0);
+
+}

@@ -1,3 +1,5 @@
+#include "component_redis.h"
+
 #include <unistd.h>
 #include <iostream>
 #include <stdlib.h>
@@ -7,7 +9,7 @@
 
 
 
-int initialize()
+Component_Redis::Component_Redis()
 {
 	redisContext* redis = redisConnect("localhost", 6379);
 
