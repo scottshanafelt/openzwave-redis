@@ -5,6 +5,6 @@ class Component_OZW
 {
 public:
 	Component_OZW();
-	Destroy();
+	void Finish();
 };
 #endif

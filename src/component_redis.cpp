@@ -7,24 +7,24 @@
 	using std::string;
 #include <hiredis/hiredis.h>
 
-
+redisContext* _redis;
 
 Component_Redis::Component_Redis()
 {
-	redisContext* redis = redisConnect("localhost", 6379);
+	_redis = redisConnect("localhost", 6379);
 
-	if (redis == NULL || redis->err)
+	if (_redis == NULL || _redis->err)
 	{
 		std::cout << "Error Connecting to Redis Server" << std::endl;
 		exit(1);
 	}
     redisReply *reply;
-    reply = (redisReply*) redisCommand(redis,"PING");
+    reply = (redisReply*) redisCommand(_redis,"PING");
     if (strcmp(reply->str, "PONG") == 0) std::cout << "Connected to Redis Server!" << std::endl;
+}
 
-
-
-
+void Component_Redis::Finish()
+{
 	//Clean up Redis
-	redisFree(redis);
+	redisFree(_redis);
 }

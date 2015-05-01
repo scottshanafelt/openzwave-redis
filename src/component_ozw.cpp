@@ -20,6 +20,7 @@
 	using OpenZWave::ValueID;
 #include <openzwave/value_classes/ValueBool.h>
 
+string port = "/dev/ttyUSB0";
 bool temp = false;
 static uint32 g_homeId = 0;
 static bool   g_initFailed = false;
@@ -228,7 +229,7 @@ Component_OZW::Component_OZW()
 	
 	OpenZWave::Manager::Get()->AddWatcher(OnNotification, NULL);
 	
-	string port = "/dev/ttyUSB0";
+	
 	OpenZWave::Manager::Get()->AddDriver(port);
 	
 	pthread_cond_wait(&initCond, &initMutex);
@@ -267,7 +268,7 @@ Component_OZW::Component_OZW()
 		// stalling the OpenZWave drivers.
 		// At this point, the program just waits for 3 minutes (to demonstrate polling),
 		// then exits
-		
+
 		// for( int i = 0; i < 60*1; i++ )
 		// {
 		// 	pthread_mutex_lock( &g_criticalSection );
@@ -282,7 +283,7 @@ Component_OZW::Component_OZW()
 
 
 }
-Component_OZW::Destroy()
+void Component_OZW::Finish()
 {
 	OpenZWave::Driver::DriverData data;
 	OpenZWave::Manager::Get()->GetDriverStatistics( g_homeId, &data );

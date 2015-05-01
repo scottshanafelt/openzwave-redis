@@ -5,6 +5,6 @@ class Component_Redis
 {
 public:
 	Component_Redis();
-	Destroy();
+	void Finish();
 };
 #endif
